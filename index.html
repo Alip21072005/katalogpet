@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Pet Stock Catalog</title>
+
+    <style>
+        /* =========================
+       COLORS & BASE
+    ========================= */
+
+        :root {
+            color-scheme: dark;
+
+            --page: #06080c;
+            --canvas: #090d14;
+            --card: #101722;
+            --image-area: #0c121c;
+
+            --border: #253247;
+            --border-soft: #1b2739;
+
+            --text: #f2f6fc;
+            --muted: #8191a8;
+            --blue: #59a7ff;
+            --blue-light: #b3d6ff;
+
+            --token: #00ff40;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            min-height: 100%;
+        }
+
+        body {
+            background: var(--page);
+            color: var(--text);
+            font-family:
+                Inter, ui-sans-serif, system-ui, -apple-system,
+                BlinkMacSystemFont, "Segoe UI", sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        button,
+        a {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* =========================
+       WORKSPACE
+       Outside screenshot area
+    ========================= */
+
+        .workspace {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 28px;
+            gap: 20px;
+        }
+
+        .toolbar,
+        .slide-controls {
+            width: min(100%, 1440px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .workspace-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .workspace-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--blue);
+        }
+
+        .toolbar-note {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        /* =========================
+       SCREENSHOT CANVAS
+       Always 16:9 / 4 x 2 cards
+    ========================= */
+
+        .catalog {
+            width: min(100%, 1440px);
+            aspect-ratio: 16 / 9;
+            flex-shrink: 0;
+
+            /* Enables typography relative to canvas width. */
+            container-type: inline-size;
+
+            position: relative;
+            overflow: hidden;
+            background: var(--canvas);
+            border: 1px solid var(--border-soft);
+        }
+
+        .catalog::before {
+            content: "";
+            position: absolute;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--blue);
+            pointer-events: none;
+        }
+
+        .pet-grid {
+            width: 100%;
+            height: 100%;
+
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-rows: repeat(2, minmax(0, 1fr));
+
+            gap: 1.2cqw;
+            padding: 1.6cqw;
+        }
+
+        /* =========================
+       PET CARD
+    ========================= */
+
+        .pet-card {
+            min-width: 0;
+            min-height: 0;
+            overflow: hidden;
+
+            display: flex;
+            flex-direction: column;
+
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 1cqw;
+        }
+
+        .pet-visual {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            overflow: hidden;
+            isolation: isolate;
+            background: var(--image-area);
+            border-bottom: 1px solid var(--border-soft);
+        }
+
+        .pet-visual::after {
+            content: "";
+            position: absolute;
+            z-index: -1;
+            width: 60%;
+            height: 1px;
+            bottom: 13%;
+            background: #233650;
+            box-shadow: 0 0 28px 7px rgb(61 136 232 / 8%);
+        }
+
+        .stock-id {
+            position: absolute;
+            top: 0.85cqw;
+            left: 0.9cqw;
+
+            color: #62758f;
+            font-size: 0.66cqw;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Photo placeholder: replace with an <img>. */
+        .photo-placeholder {
+            width: 100%;
+            height: 100%;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.55cqw;
+
+            padding-top: 1cqw;
+            color: #455c79;
+        }
+
+        .photo-placeholder svg {
+            width: 4.8cqw;
+            height: 4.8cqw;
+            stroke-width: 1;
+        }
+
+        .photo-placeholder span {
+            color: #697d98;
+            font-size: 0.62cqw;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        .pet-image {
+            width: 100%;
+            height: 100%;
+            padding: 1.7cqw 1.3cqw 1cqw;
+            display: block;
+            object-fit: contain;
+        }
+
+        /* =========================
+       CARD INFORMATION
+    ========================= */
+
+        .pet-info {
+            flex-shrink: 0;
+            padding: 1.05cqw 1.1cqw 1cqw;
+        }
+
+        .pet-name {
+            margin: 0 0 0.65cqw;
+            overflow: hidden;
+
+            color: var(--text);
+            font-size: 1.25cqw;
+            line-height: 1.2;
+            font-weight: 700;
+            letter-spacing: -0.035em;
+
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .mutation {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35cqw;
+
+            min-height: 1.45cqw;
+            max-width: 100%;
+            padding: 0.24cqw 0.52cqw;
+            border: 1px solid;
+            border-radius: 0.35cqw;
+
+            font-size: 0.65cqw;
+            line-height: 1;
+            font-weight: 700;
+            letter-spacing: 0.045em;
+            text-transform: uppercase;
+        }
+
+        .mutation::before {
+            content: "";
+            width: 0.3cqw;
+            height: 0.3cqw;
+            flex-shrink: 0;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .mutation--ember {
+            color: #ffbd87;
+            background: #2a1d19;
+            border-color: #62402c;
+        }
+
+        .mutation--transcendent {
+            color: #d2b8ff;
+            background: #231d34;
+            border-color: #51416f;
+        }
+
+        .mutation--inferno {
+            color: #ff9898;
+            background: #2c191f;
+            border-color: #71333d;
+        }
+
+        .pet-bottom {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 0.5cqw;
+
+            margin-top: 0.9cqw;
+            padding-top: 0.85cqw;
+            border-top: 1px solid var(--border);
+        }
+
+        .pet-stats {
+            display: flex;
+            gap: 1cqw;
+            margin: 0;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3cqw;
+        }
+
+        .stat dt {
+            color: var(--muted);
+            font-size: 0.59cqw;
+            line-height: 1;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .stat dd {
+            margin: 0;
+            color: #dce7f7;
+            font-size: 1.02cqw;
+            line-height: 1.15;
+            font-weight: 650;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .unit {
+            color: var(--muted);
+            font-size: 0.67cqw;
+            font-weight: 500;
+        }
+
+        .price {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.4cqw;
+
+            color: var(--blue-light);
+            font-size: 1.5cqw;
+            line-height: 1;
+            font-weight: 750;
+            letter-spacing: -0.045em;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .token-icon {
+            width: 1.25cqw;
+            height: 1.25cqw;
+            flex-shrink: 0;
+            color: var(--token);
+        }
+
+        /* =========================
+       SOLD STATE
+       Add class "is-sold"
+    ========================= */
+
+        .sold-label {
+            display: none;
+        }
+
+        .pet-card.is-sold .pet-visual>.photo-placeholder,
+        .pet-card.is-sold .pet-image {
+            opacity: 0.3;
+            filter: grayscale(1);
+        }
+
+        .pet-card.is-sold .pet-info {
+            opacity: 0.5;
+        }
+
+        .pet-card.is-sold .sold-label {
+            position: absolute;
+            z-index: 2;
+            inset: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            color: #f3f6fc;
+            font-size: 2.1cqw;
+            font-weight: 800;
+            letter-spacing: 0.17em;
+            background: rgb(5 9 15 / 30%);
+        }
+
+        .sold-label span {
+            padding: 0.45cqw 0.9cqw;
+            border-top: 2px solid #8f9db0;
+            border-bottom: 2px solid #8f9db0;
+            transform: rotate(-9deg);
+        }
+
+        /* =========================
+       SLIDE CONTROLS
+       Static mockup for now
+    ========================= */
+
+        .slide-controls {
+            justify-content: center;
+        }
+
+        .slide-button {
+            width: 34px;
+            height: 34px;
+
+            display: grid;
+            place-items: center;
+
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #101722;
+            color: var(--muted);
+            font: inherit;
+        }
+
+        .slide-button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .slide-counter {
+            min-width: 54px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .slide-counter span {
+            color: #dae7fa;
+        }
+
+        /* =========================
+       CAPTURE MODE
+       Add "capture-mode" to body
+    ========================= */
+
+        body.capture-mode {
+            background: var(--canvas);
+        }
+
+        body.capture-mode .workspace {
+            min-height: 100vh;
+            justify-content: flex-start;
+            padding: 0;
+            gap: 0;
+        }
+
+        body.capture-mode .toolbar,
+        body.capture-mode .slide-controls {
+            display: none;
+        }
+
+        body.capture-mode .catalog {
+            width: 100%;
+            max-width: none;
+            border: 0;
+        }
+
+        /* Keep the actual screenshot layout 4 x 2 on mobile. */
+        @media (max-width: 640px) {
+            .workspace {
+                padding: 12px;
+                gap: 14px;
+            }
+
+            .workspace-label {
+                font-size: 10px;
+                letter-spacing: 0.08em;
+            }
+
+            .toolbar-note {
+                display: none;
+            }
+        }
+
+        @media print {
+            @page {
+                size: landscape;
+                margin: 0;
+            }
+
+            body {
+                background: var(--canvas);
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .workspace {
+                min-height: auto;
+                padding: 0;
+                gap: 0;
+            }
+
+            .toolbar,
+            .slide-controls {
+                display: none;
+            }
+
+            .catalog {
+                width: 100%;
+                max-width: none;
+                border: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Reusable SVG icons -->
+    <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
+        style="position:absolute; width:0; height:0; overflow:hidden">
+        <defs>
+            <!-- Generic token icon, not an official game asset. -->
+            <symbol id="icon-token" viewBox="0 0 24 24">
+                <path d="M12 2 21 7v10l-9 5-9-5V7Z" fill="currentColor" fill-opacity=".12" stroke="currentColor"
+                    stroke-width="1.5" />
+                <path d="m12 7 5 5-5 5-5-5Z" fill="none" stroke="currentColor" stroke-width="1.5" />
+            </symbol>
+
+            <symbol id="icon-photo" viewBox="0 0 64 64">
+                <rect x="9" y="9" width="46" height="46" rx="12" fill="none" stroke="currentColor" />
+                <circle cx="24" cy="24" r="5" fill="none" stroke="currentColor" />
+                <path d="m12 46 14-13 10 8 8-10 9 12" fill="none" stroke="currentColor" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </symbol>
+        </defs>
+    </svg>
+
+    <main class="workspace">
+        <!-- Not part of the screenshot canvas -->
+        <header class="toolbar">
+            <div class="workspace-label">
+                <span class="workspace-dot"></span>
+                Catalog Preview
+            </div>
+
+            <div class="toolbar-note">
+                16:9 canvas · 8 pets per slide
+            </div>
+        </header>
+
+        <!-- Screenshot this area -->
+        <section class="catalog" aria-label="Pet stock catalog">
+            <div class="pet-grid">
+
+                <!-- PET 01 -->
+                <article class="pet-card">
+                    <div class="pet-visual">
+                        <span class="stock-id">01</span>
+
+                        <!-- Replace this placeholder with your pet image. -->
+                        <div class="photo-placeholder">
+                            <svg aria-hidden="true">
+                                <use href="#icon-photo"></use>
+                            </svg>
+                            <span>Pet photo</span>
+                        </div>
+
+                        <div class="sold-label"><span>SOLD</span></div>
+                    </div>
+
+                    <div class="pet-info">
+                        <h2 class="pet-name">Raccoon</h2>
+                        <span class="mutation mutation--transcendent">
+                            Transcendent
+                        </span>
+
+                        <div class="pet-bottom">
+                            <dl class="pet-stats">
+                                <div class="stat">
+                                    <dt>Weight</dt>
+                                    <dd>7.25 <span class="unit">kg</span></dd>
+                                </div>
+                                <div class="stat">
+                                    <dt>Age</dt>
+                                    <dd>75</dd>
+                                </div>
+                            </dl>
+
+                            <div class="price" aria-label="250 tokens">
+                                <svg class="token-icon" aria-hidden="true">
+                                    <use href="#icon-token"></use>
+                                </svg>
+                                250
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- PET 02 -->
+                <article class="pet-card">
+                    <div class="pet-visual">
+                        <span class="stock-id">02</span>
+                        <div class="photo-placeholder">
+                            <svg aria-hidden="true">
+                                <use href="#icon-photo"></use>
+                            </svg>
+                            <span>Pet photo</span>
+                        </div>
+                        <div class="sold-label"><span>SOLD</span></div>
+                    </div>
+
+                    <div class="pet-info">
+                        <h2 class="pet-name">Dragonfly</h2>
+                        <span class="mutation mutation--ember">Ember</span>
+
+                        <div class="pet-bottom">
+                            <dl class="pet-stats">
+                                <div class="stat">
+                                    <dt>Weight</dt>
+                                    <dd>5.80 <span class="unit">kg</span></dd>
+                                </div>
+                                <div class="stat">
+                                    <dt>Age</dt>
+                                    <dd>50</dd>
+                                </div>
+                            </dl>
+
+                            <div class="price" aria-label="180 tokens">
+                                <svg class="token-icon" aria-hidden="true">
+                                    <use href="#icon-token"></use>
+                                </svg>
+                                180
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- PET 03 -->
+                <article class="pet-card">
+                    <div class="pet-visual">
+                        <span class="stock-id">03</span>
+                        <div class="photo-placeholder">
+                            <svg aria-hidden="true">
+                                <use href="#icon-photo"></use>
+                            </svg>
+                            <span>Pet photo</span>
+                        </div>
+                        <div class="sold-label"><span>SOLD</span></div>
+                    </div>
+
+                    <div class="pet-info">
+                        <h2 class="pet-name">Disco Bee</h2>
+                        <span class="mutation mutation--inferno">Inferno</span>
+
+                        <div class="pet-bottom">
+                            <dl class="pet-stats">
+                                <div class="stat">
+                                    <dt>Weight</dt>
+                                    <dd>6.40 <span class="unit">kg</span></dd>
+                                </div>
+                                <div class="stat">
+                                    <dt>Age</dt>
+                                    <dd>60</dd>
+                                </div>
+                            </dl>
+
+                            <div class="price" aria-label="320 tokens">
+                                <svg class="token-icon" aria-hidden="true">
+                                    <use href="#icon-token"></use>
+                                </svg>
+                                320
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- PET 04: SOLD example -->
+                <article class="pet-card is-sold">
+                    <div class="pet-visual">
+                        <span class="stock-id">04</span>
+                        <div class="photo-placeholder">
+                            <svg aria-hidden="true">
+                                <use href="#icon-photo"></use>
+                            </svg>
+                            <span>Pet photo</span>
+                        </div>
+                        <div class="sold-label"><span>SOLD</span></div>
+                    </div>
+
+                    <div class="pet-info">
+                        <h2 class="pet-name">Butterfly</h2>
+                        <span class="mutation mutation--ember">Ember</span>
+
+                        <div class="pet-bottom">
+                            <dl class="pet-stats">
+                                <div class="stat">
+                                    <dt>Weight</dt>
+                                    <dd>4.15 <span class="unit">kg</span></dd>
+                                </div>
+                                <div class="stat">
+                                    <dt>Age</dt>
+                                    <dd>40</dd>
+                                </div>
+                            </dl>
+
+                            <div class="price" aria-label="150 tokens">
+                                <svg class="token-icon" aria-hidden="true">
+                                    <use href="#icon-token"></use>
+                                </svg>
+                                150
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- PET 05 -->
+                <article class="pet-card">
+                    <div class="pet-visual">
+                        <span class="stock-id">05</span>
+                        <div class="photo-placeholder">
+                            <svg aria-hidden="true">
+                                <use href="#icon-photo"></use>
+                            </svg>
+                            <span>Pet photo</span>
+                        </div>
+                        <div class="sold-label"><span>SOLD</span></div>
+                    </div>
+
+                    <div class="pet-info">
+                        <h2 class="pet-name">Mimic Octopus</h2>
+                        <span class="mutation mutation--transcendent">
+                            Transcendent
+                        </span>
+
+                        <div class="pet-bottom">
+                            <dl class="pet-stats">
+                                <div class="stat">
+                                    <dt>Weight</dt>
+                                    <dd>8.90 <span class="unit">kg</span></dd>
+                                </div>
+                                <div class="stat">
+                                    <dt>Age</dt>
+                                    <dd>80</dd>
+                                </div>
+                            </dl>
+
+                            <div class="price" aria-label="400 tokens">
+                                <svg class="token-icon" aria-hidden="true">
+                                    <use href="#icon-token"></use>
+                                </svg>
+                                400
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- PET 06 -->
+                <article class="pet-card">
+                    <div class="pet-visual">
+                        <span class="stock-id">06</span>
+                        <div class="photo-placeholder">
+                            <svg aria-hidden="true">
+                                <use href="#icon-photo"></use>
+                            </svg>
+                            <span>Pet photo</span>
+                        </div>
+                        <div class="sold-label"><span>SOLD</span></div>
+                    </div>
+
+                    <div class="pet-info">
+                        <h2 class="pet-name">Red Fox</h2>
+                        <span class="mutation mutation--inferno">Inferno</span>
+
+                        <div class="pet-bottom">
+                            <dl class="pet-stats">
+                                <div class="stat">
+                                    <dt>Weight</dt>
+                                    <dd>6.75 <span class="unit">kg</span></dd>
+                                </div>
+                                <div class="stat">
+                                    <dt>Age</dt>
+                                    <dd>65</dd>
+                                </div>
+                            </dl>
+
+                            <div class="price" aria-label="210 tokens">
+                                <svg class="token-icon" aria-hidden="true">
+                                    <use href="#icon-token"></use>
+                                </svg>
+                                210
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- PET 07 -->
+                <article class="pet-card">
+                    <div class="pet-visual">
+                        <span class="stock-id">07</span>
+                        <div class="photo-placeholder">
+                            <svg aria-hidden="true">
+                                <use href="#icon-photo"></use>
+                            </svg>
+                            <span>Pet photo</span>
+                        </div>
+                        <div class="sold-label"><span>SOLD</span></div>
+                    </div>
+
+                    <div class="pet-info">
+                        <h2 class="pet-name">Queen Bee</h2>
+                        <span class="mutation mutation--ember">Ember</span>
+
+                        <div class="pet-bottom">
+                            <dl class="pet-stats">
+                                <div class="stat">
+                                    <dt>Weight</dt>
+                                    <dd>5.20 <span class="unit">kg</span></dd>
+                                </div>
+                                <div class="stat">
+                                    <dt>Age</dt>
+                                    <dd>45</dd>
+                                </div>
+                            </dl>
+
+                            <div class="price" aria-label="175 tokens">
+                                <svg class="token-icon" aria-hidden="true">
+                                    <use href="#icon-token"></use>
+                                </svg>
+                                175
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- PET 08 -->
+                <article class="pet-card">
+                    <div class="pet-visual">
+                        <span class="stock-id">08</span>
+                        <div class="photo-placeholder">
+                            <svg aria-hidden="true">
+                                <use href="#icon-photo"></use>
+                            </svg>
+                            <span>Pet photo</span>
+                        </div>
+                        <div class="sold-label"><span>SOLD</span></div>
+                    </div>
+
+                    <div class="pet-info">
+                        <h2 class="pet-name">Fennec Fox</h2>
+                        <span class="mutation mutation--transcendent">
+                            Transcendent
+                        </span>
+
+                        <div class="pet-bottom">
+                            <dl class="pet-stats">
+                                <div class="stat">
+                                    <dt>Weight</dt>
+                                    <dd>7.60 <span class="unit">kg</span></dd>
+                                </div>
+                                <div class="stat">
+                                    <dt>Age</dt>
+                                    <dd>70</dd>
+                                </div>
+                            </dl>
+
+                            <div class="price" aria-label="285 tokens">
+                                <svg class="token-icon" aria-hidden="true">
+                                    <use href="#icon-token"></use>
+                                </svg>
+                                285
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+            </div>
+        </section>
+
+        <!-- Disabled until slide logic is implemented. -->
+        <nav class="slide-controls" aria-label="Catalog slides">
+            <button class="slide-button" type="button" aria-label="Previous slide" disabled>
+                &#8592;
+            </button>
+
+            <div class="slide-counter">
+                <span>01</span> / 01
+            </div>
+
+            <button class="slide-button" type="button" aria-label="Next slide" disabled>
+                &#8594;
+            </button>
+        </nav>
+    </main>
+    <script src="app.js"></script>
+</body>
+
+</html>
